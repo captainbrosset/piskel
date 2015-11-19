@@ -10,6 +10,9 @@
     this.toolId = 'tool-stroke';
     this.helpText = 'Stroke tool';
     this.shortcut = pskl.service.keyboard.Shortcuts.TOOL.STROKE;
+    this.tooltipDescriptors = [
+      {key : 'shift', description : 'Hold shift to draw straight lines'}
+    ];
 
     // Stroke's first point coordinates (set in applyToolAt)
     this.startCol = null;
@@ -43,6 +46,12 @@
 
   ns.Stroke.prototype.moveToolAt = function(col, row, frame, overlay, event) {
     overlay.clear();
+
+    if (event.shiftKey) {
+      var coords = this.getStraightLineCoordinates_(col, row);
+      col = coords.col;
+      row = coords.row;
+    }
 
     // When the user moussemove (before releasing), we dynamically compute the
     // pixel to draw the line and draw this line in the overlay canvas:
@@ -78,6 +87,12 @@
   ns.Stroke.prototype.releaseToolAt = function(col, row, frame, overlay, event) {
     var color = this.getToolColor();
 
+    if (event.shiftKey) {
+      var coords = this.getStraightLineCoordinates_(col, row);
+      col = coords.col;
+      row = coords.row;
+    }
+
     var setPixel = function (p) {
       frame.setPixel(p[0], p[1], color);
     }.bind(this);
@@ -111,5 +126,52 @@
       var pixels = pskl.app.penSizeService.getPixelsForPenSize(pixel.col, pixel.row);
       pixels.forEach(setPixel);
     });
+  };
+
+  /**
+   * Convert col, row to be on the nearest straight line or 45 degrees diagonal.
+   */
+  ns.Stroke.prototype.getStraightLineCoordinates_ = function(col, row) {
+    // coordinates translated using startCol, startRow as origin
+    var tCol = col - this.startCol;
+    var tRow = this.startRow - row;
+
+    var dist = Math.sqrt(Math.pow(tCol, 2) + Math.pow(tRow, 2));
+
+    var axisDistance = Math.round(dist);
+    var diagDistance = Math.round(Math.sqrt(Math.pow(dist, 2) / 2));
+
+    var PI8 = Math.PI / 8;
+    var angle = Math.atan2(tRow, tCol);
+    if (angle < PI8 && angle >= -PI8) {
+      row = this.startRow;
+      col = this.startCol + axisDistance;
+    } else if (angle >= PI8 && angle < 3 * PI8) {
+      row = this.startRow - diagDistance;
+      col = this.startCol + diagDistance;
+    } else if (angle >= 3 * PI8 && angle < 5 * PI8) {
+      row = this.startRow - axisDistance;
+      col = this.startCol;
+    } else if (angle >= 5 * PI8 && angle < 7 * PI8) {
+      row = this.startRow - diagDistance;
+      col = this.startCol - diagDistance;
+    } else if (angle >= 7 * PI8 || angle < -7 * PI8) {
+      row = this.startRow;
+      col = this.startCol - axisDistance;
+    } else if (angle >= -7 * PI8 && angle < -5 * PI8) {
+      row = this.startRow + diagDistance;
+      col = this.startCol - diagDistance;
+    } else if (angle >= -5 * PI8 && angle < -3 * PI8) {
+      row = this.startRow + axisDistance;
+      col = this.startCol;
+    } else if (angle >= -3 * PI8 && angle < -PI8) {
+      row = this.startRow + diagDistance;
+      col = this.startCol + diagDistance;
+    }
+
+    return {
+      col : col,
+      row : row
+    };
   };
 })();
