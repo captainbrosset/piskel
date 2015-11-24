@@ -14,6 +14,7 @@
     LAYER_OPACITY : 'LAYER_OPACITY',
     EXPORT_SCALING: 'EXPORT_SCALING',
     PEN_SIZE : 'PEN_SIZE',
+    RESIZE_SETTINGS: 'RESIZE_SETTINGS',
 
     KEY_TO_DEFAULT_VALUE_MAP_ : {
       'GRID_WIDTH' : 0,
@@ -30,7 +31,12 @@
       'LAYER_OPACITY' : 0.2,
       'LAYER_PREVIEW' : true,
       'EXPORT_SCALING' : 1,
-      'PEN_SIZE' : 1
+      'PEN_SIZE' : 1,
+      'RESIZE_SETTINGS': {
+        maintainRatio : true,
+        resizeContent : false,
+        origin : 'TOPLEFT'
+      }
     },
 
     /**
