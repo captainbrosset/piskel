@@ -57,11 +57,15 @@
     }
 
     var step = oncePerPixel ? DEFAULT_STEP * 2 : DEFAULT_STEP;
-    var isDarken = pskl.utils.UserAgent.isMac ?  event.metaKey : event.ctrlKey;
-    if (isDarken) {
-      return window.tinycolor.darken(pixelColor, step).toRgbString();
+    var useDarken = pskl.utils.UserAgent.isMac ?  event.metaKey : event.ctrlKey;
+    var color;
+    if (useDarken) {
+      color = window.tinycolor.darken(pixelColor, step);
     } else {
-      return window.tinycolor.lighten(pixelColor, step).toRgbString();
+      color = window.tinycolor.lighten(pixelColor, step);
     }
+
+    // Convert tinycolor color to string format.
+    return color.toHexString();
   };
 })();
