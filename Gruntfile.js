@@ -70,8 +70,8 @@ module.exports = function(grunt) {
 
   grunt.initConfig({
     clean: {
-      prod: ['dest'],
-      dev: ['dest-dev']
+      prod: ['dest', 'dest-tmp'],
+      dev: ['dest-dev', 'dest-tmp']
     },
 
     /**
@@ -182,24 +182,20 @@ module.exports = function(grunt) {
       },
       js : {
         files : {
-          'dest/js/piskel-packaged-min.js' : ['dest/js/piskel-packaged' + version + '.js']
+          'dest-tmp/js/piskel-packaged-min.js' : ['dest/js/piskel-packaged' + version + '.js']
         }
       }
     },
 
     includereplace: {
-      prod: {
+      all: {
         src: 'src/index.html',
-        dest: 'dest/index.html'
-      },
-      dev: {
-        src: 'src/index.html',
-        dest: 'dest-dev/index.html'
+        dest: 'dest-tmp/index.html'
       }
     },
 
     replace: {
-      main: {
+      piskelBoot: {
         options: {
           patterns: [
             {
@@ -209,10 +205,12 @@ module.exports = function(grunt) {
           ]
         },
         files: [
-          {src: ['src/piskel-boot.js'], dest: 'dest/piskel-boot.js'}
+          {src: ['src/piskel-boot.js'], dest: 'dest/piskel-boot.js'},
+          {src: ['src/piskel-boot.js'], dest: 'dest/piskel-boot' + version +'.js'}
         ]
       },
-      editor: {
+      // main-partial.html is used when embedded in piskelapp.com
+      mainPartial: {
         options: {
           patterns: [{
               match: /piskel-boot.js/g,
@@ -243,9 +241,8 @@ module.exports = function(grunt) {
       prod: {
         files: [
           // dest/js/piskel-packaged-min.js should have been created by the uglify task
-          {src: ['dest/js/piskel-packaged-min.js'], dest: 'dest/js/piskel-packaged-min' + version + '.js'},
-          // dest/piskel-boot.js should have been created by the replace:main task
-          {src: ['dest/piskel-boot.js'], dest: 'dest/piskel-boot' + version + '.js'},
+          {src: ['dest-tmp/js/piskel-packaged-min.js'], dest: 'dest/js/piskel-packaged-min' + version + '.js'},
+          {src: ['dest-tmp/index.html'], dest: 'dest/index.html'},
           {src: ['src/logo.png'], dest: 'dest/logo.png'},
           {src: ['src/js/lib/gif/gif.ie.worker.js'], dest: 'dest/js/lib/gif/gif.ie.worker.js'},
           {expand: true, src: ['img/**'], cwd: 'src/', dest: 'dest/', filter: 'isFile'},
@@ -255,6 +252,7 @@ module.exports = function(grunt) {
       dev: {
         files: [
           // in dev copy everything to dest-dev
+          {src: ['dest-tmp/index.html'], dest: 'dest-dev/index.html'},
           {src: ['src/piskel-boot.js'], dest: 'dest-dev/piskel-boot.js'},
           {src: ['src/piskel-script-list.js'], dest: 'dest-dev/piskel-script-list.js'},
           {src: ['src/piskel-style-list.js'], dest: 'dest-dev/piskel-style-list.js'},
@@ -295,10 +293,10 @@ module.exports = function(grunt) {
         },
         src: ['./dest/**/*', "./package.json", "!./dest/desktop/"]
       },
-
       macos : {
         options: {
           platforms : ['osx64'],
+          // had performance issues with 0.11.5 on mac os, need to test new versions/new hardware
           version : "0.10.5",
           build_dir: './dest/desktop/'
         },
@@ -322,8 +320,11 @@ module.exports = function(grunt) {
   grunt.registerTask('test', ['test-travis']);
   grunt.registerTask('precommit', ['test-local']);
 
-  grunt.registerTask('build',  ['clean:prod', 'sprite', 'concat:js', 'concat:css', 'uglify', 'includereplace:prod', 'replace:main', 'copy:prod', 'replace:editor']);
-  grunt.registerTask('build-dev',  ['clean:dev', 'sprite', 'includereplace:dev', 'copy:dev']);
+  grunt.registerTask('build-index.html', ['includereplace']);
+  grunt.registerTask('merge-statics', ['concat:js', 'concat:css', 'uglify']);
+  grunt.registerTask('replace-all', ['replace:piskelBoot', 'replace:mainPartial']);
+  grunt.registerTask('build',  ['clean:prod', 'sprite', 'merge-statics', 'build-index.html', 'replace-all', 'copy:prod']);
+  grunt.registerTask('build-dev',  ['clean:dev', 'sprite', 'build-index.html', 'copy:dev']);
 
   // Validate & Build
   grunt.registerTask('default', ['lint', 'build']);
@@ -334,7 +335,6 @@ module.exports = function(grunt) {
 
   // Start webserver and watch for changes
   grunt.registerTask('serve', ['build', 'express:regular', 'open:regular', 'watch:prod']);
-
   // Start webserver on src folder, in debug mode
   grunt.registerTask('serve-debug', ['build-dev', 'express:debug', 'open:debug', 'watch:dev']);
   grunt.registerTask('play', ['serve-debug']);
