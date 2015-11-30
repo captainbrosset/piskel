@@ -204,6 +204,10 @@ module.exports = function(grunt) {
       mainPartial: {
         options: {
           patterns: [{
+              match: /(\{\{[a-z-]*:?[a-z-]+\}\})/gi,
+              replacement: "{% verbatim %}$1{% verbatim %}",
+              description : "escape template tokens for Django"
+            },{
               match: /^(.|[\r\n])*<!--body-main-start-->/,
               replacement: "",
               description : "Remove everything before body-main-start comment"
